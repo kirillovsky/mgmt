@@ -45,8 +45,7 @@ public class StartCommandImpl implements StartCommand {
 
         handlers.stream()
                 .peek(this::executedCmdLine)
-                .peek(this::await)
-                .forEach(this::executePostStartAction);
+                .forEach(this::await);
     }
 
     //todo start in time no more than cpu count
@@ -58,17 +57,7 @@ public class StartCommandImpl implements StartCommand {
             logStartStatus("Executing cmd line in parallel, group[" + group + "]", handles);
             handles.forEach(this::executedCmdLine);
             handles.forEach(this::await);
-            handles.forEach(this::executePostStartAction);
         });
-    }
-
-    private void executePostStartAction(StartHandle handle) {
-        String service = handle.getServiceName();
-        try {
-            postStartStep.afterStart(service, propertyService.getProcessProperties(service));
-        } catch (RuntimeException e) {
-            error("FAILED to execute post start actions for " + service, e);
-        }
     }
 
     private List<StartHandle> prepareStart(String[] services, String... args) {
@@ -98,8 +87,18 @@ public class StartCommandImpl implements StartCommand {
     private void await(StartHandle startHandle) {
         if (startHandle.awaitStartAndGetStatus()) {
             announce("STARTED " + startHandle.getServiceName() + "\n");
+            executePostStartAction(startHandle);
         } else {
             error("FAILED to start " + startHandle.getServiceName(), startHandle.getException());
+        }
+    }
+
+    private void executePostStartAction(StartHandle handle) {
+        String service = handle.getServiceName();
+        try {
+            postStartStep.afterStart(service, propertyService.getProcessProperties(service));
+        } catch (RuntimeException e) {
+            error("FAILED to execute post start actions for " + service, e);
         }
     }
 
