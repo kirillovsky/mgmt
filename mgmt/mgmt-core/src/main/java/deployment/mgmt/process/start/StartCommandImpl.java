@@ -23,6 +23,7 @@ import static java.util.stream.Collectors.toList;
 public class StartCommandImpl implements StartCommand {
     private final PropertyService propertyService;
     private final PreStartStep preStartStep;
+    private final PostStartStep postStartStep;
     private final StartStrategy startStrategy;
 
     @Override
@@ -44,7 +45,8 @@ public class StartCommandImpl implements StartCommand {
 
         handlers.stream()
                 .peek(this::executedCmdLine)
-                .forEach(this::await);
+                .peek(this::await)
+                .forEach(this::executePostStartAction);
     }
 
     //todo start in time no more than cpu count
@@ -56,7 +58,17 @@ public class StartCommandImpl implements StartCommand {
             logStartStatus("Executing cmd line in parallel, group[" + group + "]", handles);
             handles.forEach(this::executedCmdLine);
             handles.forEach(this::await);
+            handles.forEach(this::executePostStartAction);
         });
+    }
+
+    private void executePostStartAction(StartHandle handle) {
+        String service = handle.getServiceName();
+        try {
+            postStartStep.afterStart(service, propertyService.getProcessProperties(service));
+        } catch (RuntimeException e) {
+            error("FAILED to execute post start actions for " + service, e);
+        }
     }
 
     private List<StartHandle> prepareStart(String[] services, String... args) {
