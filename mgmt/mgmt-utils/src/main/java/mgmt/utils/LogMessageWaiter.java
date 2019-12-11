@@ -16,6 +16,8 @@ import static mgmt.utils.ThreadUtils.sleepSec;
 
 @RequiredArgsConstructor
 public class LogMessageWaiter {
+    private static final int MAX_IN_MEMORY_LOG_CONTENT_LENGTH = 5_000;
+
     private final ProcessHandle processHandle;
     private final File log;
     private final Set<String> logMarkers;
@@ -40,13 +42,12 @@ public class LogMessageWaiter {
         if (!log.exists()) return;
 
         StringBuilder logContent = new StringBuilder();
-        int maxInMemoryLogContentLength = logMarkers.stream().mapToInt(String::length).max().orElse(1) * 5;
 
         try (BufferedReader reader = new BufferedReader(new FileReader(log))) {
             while (true) {
                 String line = reader.readLine();
                 if (line != null) {
-                    doAppend(logContent, line, maxInMemoryLogContentLength);
+                    doAppend(logContent, line, MAX_IN_MEMORY_LOG_CONTENT_LENGTH);
 
                     Optional<String> marker = logMarkers.stream()
                             .filter(s -> logContent.indexOf(s) >= 0)
