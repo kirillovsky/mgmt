@@ -37,7 +37,7 @@ public class JavaStartStrategy implements StartStrategy {
     private ProcessBuilder prepareProcess(String service, String[] args, ProcessProperties processProperties, Map<String, String> envVariables) {
         ProcessBuilder processBuilder = new ProcessBuilder().command(getCommand(processProperties, args))
                 .directory(deployFileStructure.service().getServiceDir(service))
-                .redirectOutput(deployFileStructure.logs().getLogFile(service, "out.log"))
+                .redirectOutput(deployFileStructure.logs().getLogFile(service, processProperties.getLogFileName("out")))
                 .redirectErrorStream(true);
 
 //        if (processProperties.inheritIO()) {
